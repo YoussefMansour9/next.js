@@ -5,6 +5,7 @@ use std::{
     fmt::{self, Display, Formatter, Write},
     hash::{BuildHasherDefault, Hash, Hasher},
     mem::take,
+    num::NonZeroU32,
     sync::{Arc, LazyLock},
 };
 
@@ -305,7 +306,24 @@ pub struct ModuleValue {
     // `early_visitor` plus `visitor` setup. Then this could just be implemented with a rewrite
     // rule for `Member(ModuleValue, prop) if prop.as_str().is_upper_case() => { ... }`
     pub analyze_for_constants: bool,
-    pub reference: Option<u32>,
+    // This is an Option<NonZeroU32> to JsValue to only be 32 bytes in size.
+    pub reference: Option<ModuleReferenceIndex>,
+}
+
+#[derive(Copy, Debug, Clone, Hash, PartialEq, Eq)]
+pub struct ModuleReferenceIndex(NonZeroU32);
+
+impl From<u32> for ModuleReferenceIndex {
+    fn from(value: u32) -> Self {
+        // SAFETY: We add 1 to the value, so the only way this can overflow is if value == u32::MAX,
+        // which is unlikely since it would require us to have that many module references.
+        ModuleReferenceIndex(unsafe { NonZeroU32::new_unchecked(value + 1) })
+    }
+}
+impl From<ModuleReferenceIndex> for u32 {
+    fn from(value: ModuleReferenceIndex) -> Self {
+        value.0.get() - 1
+    }
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]

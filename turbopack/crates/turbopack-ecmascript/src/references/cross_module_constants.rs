@@ -50,8 +50,9 @@ pub async fn module_value_to_constants_module(
         bail!("missing reference for constant value");
     };
 
+    let reference_idx = u32::from(reference_idx) as usize;
     let import_reference = import_references
-        .get(reference_idx as usize)
+        .get(reference_idx)
         .with_context(|| format!("couldn't find import reference at index {reference_idx}"))?;
 
     // We are reusing the exact resolve options from EsmAssetReference here, which is good and gives
